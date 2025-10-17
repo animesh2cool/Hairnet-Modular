@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Hairnet Detection System - AI-Powered Safety Monitoring</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                color: #333;
+                overflow-x: hidden;
+            }
+
+            .container {
+                max-width: 1600px;
+                margin: 0 auto;
+                padding: 20px;
+                position: relative;
+            }
+
+            .header {
+                text-align: center;
+                color: white;
+                margin-bottom: 40px;
+                animation: fadeInDown 0.8s ease-out;
+            }
+
+            .header h1 {
+                font-size: 3.5rem;
+                font-weight: 700;
+                margin-bottom: 10px;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+                background: linear-gradient(45deg, #fff, #f0f8ff);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+            }
+
+            .header h2 {
+                font-size: 1.5rem;
+                font-weight: 300;
+                opacity: 0.9;
+                margin-bottom: 20px;
+            }
+
+            .face-based-notice {
+                background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+                border: 2px solid #1976d2;
+                border-radius: 15px;
+                padding: 20px;
+                margin: 20px 0;
+                text-align: center;
+                color: #1976d2;
+                font-weight: 600;
+                font-size: 1.1rem;
+                box-shadow: 0 8px 32px rgba(25, 118, 210, 0.2);
+                animation: pulse 2s infinite;
+                backdrop-filter: blur(10px);
+            }
+
+            .main-content {
+                display: grid;
+                grid-template-columns: 2fr 1fr;
+                gap: 30px;
+                margin-bottom: 30px;
+                animation: fadeInUp 0.8s ease-out 0.2s both;
+            }
+
+            .video-section {
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(20px);
+                border-radius: 20px;
+                padding: 25px;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+                position: relative;
+                overflow: hidden;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+
+            .video-section::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 4px;
+                background: linear-gradient(90deg, #667eea, #764ba2, #667eea);
+                background-size: 200% 100%;
+                animation: shimmer 2s linear infinite;
+            }
+
+            .stats-section {
+                background: rgba(255, 255, 255, 0.95);
+                backdrop-filter: blur(20px);
+                border-radius: 20px;
+                padding: 25px;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+                position: relative;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+
+            .section-title {
+                font-size: 1.5rem;
+                font-weight: 600;
+                margin-bottom: 20px;
+                color: #333;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .section-title .icon {
+                font-size: 1.8rem;
+                background: linear-gradient(45deg, #667eea, #764ba2);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+            }
+
+            #videoFeed {
+                width: 100%;
+                height: auto;
+                border-radius: 15px;
+                border: 3px solid #e0e0e0;
+                max-height: 500px;
+                object-fit: contain;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+                transition: all 0.3s ease;
+            }
+
+            #videoFeed:hover {
+                transform: scale(1.02);
+                box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            }
+
+            .status-card {
+                display: flex;
+                align-items: center;
+                margin: 15px 0;
+                padding: 15px;
+                border-radius: 12px;
+                background: rgba(245, 245, 245, 0.8);
+                backdrop-filter: blur(10px);
+                transition: all 0.3s ease;
+                border: 1px solid rgba(0,0,0,0.1);
+            }
+
+            .status-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            }
+
+            .status-dot {
+                width: 16px;
+                height: 16px;
+                border-radius: 50%;
+                margin-right: 15px;
+                position: relative;
+                box-shadow: 0 0 15px rgba(0,0,0,0.3);
+            }
+
+            .status-dot::before {
+                content: '';
+                position: absolute;
+                top: -2px;
+                left: -2px;
+                right: -2px;
+                bottom: -2px;
+                border-radius: 50%;
+                background: inherit;
+                opacity: 0.3;
+                animation: pulse 2s infinite;
+            }
+
+            .status-active { background: #4CAF50; }
+            .status-violation { 
+                background: #f44336; 
+                animation: alertPulse 1s infinite alternate;
+            }
+            .status-inactive { background: #9E9E9E; }
+
+            .violation-count {
+                font-size: 3rem;
+                font-weight: 700;
+                color: #f44336;
+                text-align: center;
+                margin: 25px 0;
+                padding: 25px;
+                background: linear-gradient(135deg, #ffebee 0%, #fce4ec 100%);
+                border-radius: 15px;
+                border: 2px solid #f44336;
+                position: relative;
+                overflow: hidden;
+                box-shadow: 0 10px 30px rgba(244, 67, 54, 0.2);
+            }
+
+            .violation-count::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+                animation: slideIn 3s infinite;
+            }
+
+            .violation-subtitle {
+                font-size: 0.9rem;
+                color: #666;
+                margin-top: 10px;
+                font-weight: 400;
+            }
+
+            .stats-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 15px;
+                margin: 20px 0;
+            }
+
+            .stat-item {
+                background: rgba(255, 255, 255, 0.7);
+                padding: 15px;
+                border-radius: 10px;
+                text-align: center;
+                border: 1px solid rgba(0,0,0,0.1);
+                transition: all 0.3s ease;
+            }
+
+            .stat-item:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            }
+
+            .stat-number {
+                font-size: 2rem;
+                font-weight: 700;
+                color: #667eea;
+                display: block;
+            }
+
+            .stat-label {
+                font-size: 0.9rem;
+                color: #666;
+                margin-top: 5px;
+            }
+
+            .controls {
+                text-align: center;
+                margin: 30px 0;
+                animation: fadeInUp 0.8s ease-out 0.4s both;
+            }
+
+            .btn {
+                background: linear-gradient(135deg, #4CAF50, #45a049);
+                color: white;
+                border: none;
+                padding: 15px 30px;
+                border-radius: 12px;
+                cursor: pointer;
+                font-size: 16px;
+                font-weight: 600;
+                margin: 0 10px 10px 0;
+                transition: all 0.3s ease;
+                box-shadow: 0 8px 20px rgba(76, 175, 80, 0.3);
+                position: relative;
+                overflow: hidden;
+            }
+
+            .btn::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+                transition: left 0.5s;
+            }
+
+            .btn:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 12px 30px rgba(76, 175, 80, 0.4);
+            }
+
+            .btn:hover::before {
+                left: 100%;
+            }
+
+            .btn-stop { 
+                background: linear-gradient(135deg, #f44336, #da190b);
+                box-shadow: 0 8px 20px rgba(244, 67, 54, 0.3);
+            }
+
+            .btn-stop:hover { 
+                box-shadow: 0 12px 30px rgba(244, 67, 54, 0.4);
+            }
+
+            .btn-secondary {
+                background: linear-gradient(135deg, #2196F3, #1976D2);
+                box-shadow: 0 8px 20px rgba(33, 150, 243, 0.3);
+            }
+
+            .btn-secondary:hover {
+                box-shadow: 0 12px 30px rgba(33, 150, 243, 0.4);
+            }
+
+            .btn-warning {
+                background: linear-gradient(135deg, #FF9800, #F57C00);
+                box-shadow: 0 8px 20px rgba(255, 152, 0, 0.3);
+            }
+
+            .btn-warning:hover {
+                box-shadow: 0 12px 30px rgba(255, 152, 0, 0.4);
+            }
+
+            .violation-details {
+                margin-top: 20px;
+                padding: 15px;
+                background: rgba(249, 249, 249, 0.8);
+                border-radius: 10px;
+                border: 1px solid #e0e0e0;
+                backdrop-filter: blur(10px);
+                transition: all 0.3s ease;
+            }
+
+            .footer {
+                text-align: center;
+                color: white;
+                margin-top: 40px;
+                opacity: 0.8;
+                animation: fadeIn 1s ease-out 0.6s both;
+            }
+
+            /* Animations */
+            @keyframes fadeInDown {
+                from { opacity: 0; transform: translateY(-30px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+
+            @keyframes fadeInUp {
+                from { opacity: 0; transform: translateY(30px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+
+            @keyframes pulse {
+                0%, 100% { transform: scale(1); opacity: 1; }
+                50% { transform: scale(1.05); opacity: 0.8; }
+            }
+
+            @keyframes alertPulse {
+                0% { box-shadow: 0 0 15px rgba(244, 67, 54, 0.5); }
+                100% { box-shadow: 0 0 25px rgba(244, 67, 54, 0.8); }
+            }
+
+            @keyframes shimmer {
+                0% { background-position: -200% 0; }
+                100% { background-position: 200% 0; }
+            }
+
+            @keyframes slideIn {
+                0% { left: -100%; }
+                100% { left: 100%; }
+            }
+
+            /* Responsive Design */
+            @media (max-width: 1200px) {
+                .main-content {
+                    grid-template-columns: 1fr;
+                    gap: 20px;
+                }
+                
+                .header h1 { font-size: 2.5rem; }
+                .stats-grid { grid-template-columns: 1fr; }
+            }
+
+            @media (max-width: 768px) {
+                .container { padding: 15px; }
+                .header h1 { font-size: 2rem; }
+                .header h2 { font-size: 1.2rem; }
+                .btn { padding: 12px 20px; font-size: 14px; margin: 5px; }
+                .violation-count { font-size: 2.5rem; }
+            }
+
+            /* Dark mode support */
+            @media (prefers-color-scheme: dark) {
+                .video-section, .stats-section {
+                    background: rgba(30, 30, 30, 0.95);
+                    color: #e0e0e0;
+                }
+                
+                .section-title { color: #e0e0e0; }
+                .status-card { background: rgba(50, 50, 50, 0.8); }
+                .stat-item { background: rgba(60, 60, 60, 0.7); color: #e0e0e0; }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>Hairnet Detection System</h1>
+            </div>
+            
+            <div class="main-content">
+                <div class="video-section">
+                    <h2 class="section-title">
+                        <span class="icon">🎥</span>
+                        Vision AI Hairnet Detection Feed
+                    </h2>
+                    <img id="videoFeed" src="/video_feed" alt="AI-powered hairnet detection">
+                </div>
+                
+                <div class="stats-section">
+                    <h2 class="section-title">
+                        <span class="icon">📊</span>
+                        System Dashboard
+                    </h2>
+                    
+                    <div class="status-card">
+                        <div class="status-dot" id="statusDot"></div>
+                        <div>
+                            <strong id="statusText">Connecting...</strong>
+                            <div style="font-size: 0.9rem; color: #666; margin-top: 3px;" id="statusSubtext">Initializing AI models</div>
+                        </div>
+                    </div>
+                    
+                    <div class="violation-count">
+                        <div style="font-size: 1.2rem; margin-bottom: 10px;">🚨 Active Violations</div>
+                        <div id="violationCount">0</div>
+                        <div class="violation-subtitle">Face-detected violations only</div>
+                    </div>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-number" id="facesProcessed">0</span>
+                            <div class="stat-label">👤 Faces Processed</div>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number" id="knownEmployees">0</span>
+                            <div class="stat-label">🏷️ Known Employees</div>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number" id="videosRecorded">0</span>
+                            <div class="stat-label">🎬 Videos Recorded</div>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number" id="systemUptime">00:00</span>
+                            <div class="stat-label">⏱️ System Uptime</div>
+                        </div>
+                    </div>
+                    
+                    <div class="violation-details" id="violationDetails">
+                        <div style="color: #666; text-align: center;">🤖 AI system ready - Monitoring for violations...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button class="btn" onclick="startDetection()">
+                    ▶️ Start AI Detection
+                </button>
+                <button class="btn btn-stop" onclick="stopDetection()">
+                    ⏹️ Stop Detection
+                </button>
+            </div>
+            
+            <div class="footer">
+                <p>🤖 Powered by YOLO AI & Face Recognition | Real-time Safety Monitoring</p>
+                <p style="font-size: 0.9rem; margin-top: 10px; opacity: 0.7;">
+                    Zone-focused detection • Smart face recognition • Automated video recording
+                </p>
+            </div>
+        </div>
+
+        <script>
+            let ws = null;
+            let isConnected = false;
+            let reconnectAttempts = 0;
+            let startTime = Date.now();
+            const maxReconnectAttempts = 10;
+
+            // Update system uptime
+            function updateUptime() {
+                const uptime = Math.floor((Date.now() - startTime) / 1000);
+                const hours = Math.floor(uptime / 3600);
+                const minutes = Math.floor((uptime % 3600) / 60);
+                const seconds = uptime % 60;
+                document.getElementById('systemUptime').textContent = 
+                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+
+            setInterval(updateUptime, 1000);
+
+            function connectWebSocket() {
+                if (reconnectAttempts >= maxReconnectAttempts) {
+                    console.log('Max reconnection attempts reached');
+                    updateStatus('🔴 Connection Failed', 'violation', 'Maximum retries exceeded');
+                    return;
+                }
+
+                try {
+                    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                    ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
+                    
+                    ws.onopen = function(event) {
+                        console.log('WebSocket connected');
+                        isConnected = true;
+                        reconnectAttempts = 0;
+                        updateStatus('🟢 AI Detection Active', 'active', 'Real-time face-based monitoring');
+                    };
+                    
+                    ws.onmessage = function(event) {
+                        try {
+                            const data = JSON.parse(event.data);
+                            updateDashboard(data);
+                        } catch (e) {
+                            console.error('Error parsing WebSocket message:', e);
+                        }
+                    };
+                    
+                    ws.onclose = function(event) {
+                        console.log('WebSocket disconnected');
+                        isConnected = false;
+                        updateStatus('🟡 Reconnecting...', 'inactive', 'Attempting to reconnect');
+                        
+                        reconnectAttempts++;
+                        setTimeout(connectWebSocket, 2000 + (reconnectAttempts * 1000));
+                    };
+                    
+                    ws.onerror = function(error) {
+                        console.error('WebSocket error:', error);
+                        updateStatus('🔴 Connection Error', 'violation', 'WebSocket connection failed');
+                    };
+                } catch (error) {
+                    console.error('Failed to create WebSocket:', error);
+                    updateStatus('🔴 Connection Failed', 'violation', 'Unable to establish connection');
+                }
+            }
+
+            function updateDashboard(data) {
+                // Update violation count with animation
+                const violationCountEl = document.getElementById('violationCount');
+                const currentCount = parseInt(violationCountEl.textContent);
+                const newCount = data.violation_count || 0;
+                
+                if (newCount !== currentCount) {
+                    violationCountEl.style.transform = 'scale(1.1)';
+                    violationCountEl.style.color = '#ff1744';
+                    setTimeout(() => {
+                        violationCountEl.style.transform = 'scale(1)';
+                        violationCountEl.style.color = '#f44336';
+                    }, 300);
+                }
+                violationCountEl.textContent = newCount;
+                
+                // Update other stats
+                document.getElementById('facesProcessed').textContent = data.violation_faces_count || 0;
+                document.getElementById('knownEmployees').textContent = data.known_faces_count || 0;
+                document.getElementById('videosRecorded').textContent = data.violation_videos_count || 0;
+                
+                // Update status and violation details
+                if (data.violations && data.violations.length > 0) {
+                    const faceViolations = data.violations.filter(v => v.in_zone);
+                    if (faceViolations.length > 0) {
+                        updateStatus('🚨 VIOLATION DETECTED!', 'violation', 'Person without hairnet in zone');
+                        document.getElementById('violationDetails').innerHTML = 
+                            `<div style="color: #d32f2f; font-weight: bold; background: linear-gradient(135deg, #ffebee, #fce4ec); padding: 15px; border-radius: 10px; border-left: 4px solid #f44336;">
+                                ⚠️ <strong>ACTIVE VIOLATION</strong><br>
+                                <small style="color: #666;">👤 ${faceViolations.length} person(s) detected without proper hairnet</small><br>
+                                <small style="color: #666;">🎬 Recording violation video...</small>
+                            </div>`;
+                    } else {
+                        updateStatus('🟢 AI Monitoring Active', 'active', 'Zone monitoring in progress');
+                        document.getElementById('violationDetails').innerHTML = 
+                            '<div style="color: #4caf50; text-align: center;">✅ No face-based violations detected<br><small style="color: #666;">AI monitoring compliance zone</small></div>';
+                    }
+                } else {
+                    updateStatus('🟢 AI Monitoring Active', 'active', 'Zone monitoring in progress');
+                    document.getElementById('violationDetails').innerHTML = 
+                        '<div style="color: #4caf50; text-align: center;">✅ All personnel compliant<br><small style="color: #666;">Face recognition system active</small></div>';
+                }
+
+                // Update recording indicator
+                if (data.recording_violation_video) {
+                    document.getElementById('violationDetails').innerHTML += 
+                        '<div style="margin-top: 10px; color: #ff5722; text-align: center; font-weight: bold; animation: pulse 1s infinite;">🔴 RECORDING VIOLATION VIDEO</div>';
+                }
+            }
+
+            function updateStatus(text, type, subtext = '') {
+                document.getElementById('statusText').textContent = text;
+                document.getElementById('statusSubtext').textContent = subtext;
+                const statusDot = document.getElementById('statusDot');
+                statusDot.className = `status-dot status-${type}`;
+            }
+
+            // API Functions
+            async function startDetection() {
+                try {
+                    const response = await fetch('/start-detection', { method: 'POST' });
+                    const data = await response.json();
+                    showNotification('✅ AI Detection Started', 'Face-based violation monitoring is now active', 'success');
+                } catch (error) {
+                    showNotification('❌ Error', 'Failed to start detection system', 'error');
+                }
+            }
+
+            async function stopDetection() {
+                try {
+                    const response = await fetch('/stop-detection', { method: 'POST' });
+                    const data = await response.json();
+                    showNotification('🛑 Detection Stopped', 'AI monitoring has been paused', 'warning');
+                } catch (error) {
+                    showNotification('❌ Error', 'Failed to stop detection system', 'error');
+                }
+            }
+
+            async function reloadFaces() {
+                try {
+                    const response = await fetch('/reload-face-database', { method: 'POST' });
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        showNotification('🔄 Face Database Reloaded', 
+                            `${data.known_faces} known employees loaded (${data.faces_added} new faces detected)`, 'success');
+                    } else {
+                        showNotification('❌ Reload Failed', data.message, 'error');
+                    }
+                } catch (error) {
+                    showNotification('❌ Error', 'Failed to reload face database', 'error');
+                }
+            }
+
+            async function forceReloadFaces() {
+                try {
+                    const response = await fetch('/force-reload-faces', { method: 'POST' });
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        showNotification('🔥 Force Refresh Complete', 
+                            `All ${data.total_faces} employee faces reprocessed from scratch`, 'success');
+                    } else {
+                        showNotification('❌ Force Refresh Failed', data.message, 'error');
+                    }
+                } catch (error) {
+                    showNotification('❌ Error', 'Failed to force refresh faces', 'error');
+                }
+            }
+
+            async function viewReports() {
+                window.open('/reports', '_blank');
+            }
+
+            async function testSystem() {
+                try {
+                    const response = await fetch('/health');
+                    const data = await response.json();
+                    
+                    let healthStatus = data.status === 'healthy' ? '✅ HEALTHY' : '⚠️ ISSUES DETECTED';
+                    let message = `🔧 SYSTEM HEALTH CHECK
+
+🎯 Overall Status: ${healthStatus}
+🤖 AI Detection: ${data.detection_active ? '✅ Active' : '❌ Inactive'}
+👥 Face Recognition: ${data.face_recognition_enabled ? '✅ Enabled' : '❌ Disabled'}
+📹 Video Source: ${data.video_initialized ? '✅ Connected' : '❌ Disconnected'}
+🌐 WebSocket Connections: ${data.websocket_connections}
+
+📊 PERFORMANCE METRICS:
+• Known Employees: ${data.known_faces_count}
+• Violation Faces Saved: ${data.violation_faces_saved}
+• Violation Videos: ${data.violation_videos_saved}
+• Video Buffer: ${data.video_buffer_size} frames
+
+⚙️ CONFIGURATION:
+• Stream Resolution: ${data.performance_config?.stream_resolution || 'N/A'}
+• Detection FPS: ${data.performance_config?.detection_fps || 'N/A'}
+• Face Recognition Threshold: ${data.performance_config?.face_recognition_threshold || 'N/A'}
+• RTSP URL: ${data.rtsp_url || 'N/A'}
+
+🚀 OPTIMIZATIONS: ${Object.keys(data.optimizations || {}).length} active features`;
+
+                    alert(message);
+                } catch (error) {
+                    showNotification('❌ Health Check Failed', 'Unable to retrieve system status', 'error');
+                }
+            }
+
+            function showNotification(title, message, type = 'info') {
+                // Create notification element
+                const notification = document.createElement('div');
+                notification.className = `notification notification-${type}`;
+                notification.innerHTML = `
+                    <div class="notification-content">
+                        <strong>${title}</strong>
+                        <p>${message}</p>
+                    </div>
+                `;
+                
+                // Add notification styles
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: ${type === 'success' ? '#4caf50' : type === 'error' ? '#f44336' : type === 'warning' ? '#ff9800' : '#2196f3'};
+                    color: white;
+                    padding: 15px 20px;
+                    border-radius: 10px;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                    z-index: 10000;
+                    max-width: 350px;
+                    animation: slideInRight 0.3s ease-out;
+                    backdrop-filter: blur(10px);
+                `;
+                
+                document.body.appendChild(notification);
+                
+                // Auto remove after 4 seconds
+                setTimeout(() => {
+                    notification.style.animation = 'slideOutRight 0.3s ease-in forwards';
+                    setTimeout(() => notification.remove(), 300);
+                }, 4000);
+            }
+
+            // CSS for notifications
+            const notificationStyles = document.createElement('style');
+            notificationStyles.textContent = `
+                @keyframes slideInRight {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+                @keyframes slideOutRight {
+                    from { transform: translateX(0); opacity: 1; }
+                    to { transform: translateX(100%); opacity: 0; }
+                }
+            `;
+            document.head.appendChild(notificationStyles);
+
+            // Initialize connections
+            connectWebSocket();
+
+            // Auto-refresh video feed to prevent stalling
+            setInterval(() => {
+                const video = document.getElementById('videoFeed');
+                const currentSrc = video.src;
+                video.src = currentSrc.split('?')[0] + '?t=' + new Date().getTime();
+            }, 45000);
+
+            // Add loading states to buttons
+            function addButtonLoading(button) {
+                button.disabled = true;
+                button.style.opacity = '0.7';
+                const originalText = button.innerHTML;
+                button.innerHTML = '⏳ Processing...';
+                
+                setTimeout(() => {
+                    button.disabled = false;
+                    button.style.opacity = '1';
+                    button.innerHTML = originalText;
+                }, 2000);
+            }
+
+            // Add click handlers with loading states
+            document.addEventListener('DOMContentLoaded', function() {
+                const buttons = document.querySelectorAll('.btn');
+                buttons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        addButtonLoading(this);
+                    });
+                });
+            });
+        </script>
+    </body>
+    </html>
