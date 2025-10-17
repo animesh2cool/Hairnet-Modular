@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+pydantic-settings
+opencv-python
+ultralytics
+torch
+torchvision
+torchaudio
+facenet-pytorch
+numpy
+requests
+pymysql
+scikit-learn
+Pillow
